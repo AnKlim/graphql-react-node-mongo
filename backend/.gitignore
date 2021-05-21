@@ -1,0 +1,24 @@
+**/.idea/
+**/*.iml
+**/target/
+.vscode/
+
+# dependencies
+**/node_modules
+
+# testing
+**/coverage
+
+# production
+**/build
+**/dist
+
+# misc
+.env
+
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+**/package-lock.json
+**/yarn.lock
