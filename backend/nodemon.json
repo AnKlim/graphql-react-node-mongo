@@ -1,0 +1,7 @@
+{
+    "env": {
+        "MONGO_USER": "anklim",
+        "MONGO_PASSWORD": "13znCar6M0Q2e7E7",
+        "MONGO_DB": "graphql-react-mongo-node"
+    }
+}
