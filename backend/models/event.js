@@ -15,7 +15,7 @@ const eventSchema = new Schema({
         type: Number,
         required: true
     },
-    price: {
+    date: {
         type: Date,
         required: true
     },

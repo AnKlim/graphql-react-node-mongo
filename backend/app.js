@@ -55,77 +55,47 @@ app.use('/graphql', graphqlHTTP({
         }
     `),
     rootValue: {
-        events: () => {
+        events: async () => {
             // Need cos graphQL knows that it runs in async function and wait for complete
-            return Event.find()
-            .then(events => {
-                return events.map(event => {
+            try {
+                const findedEvents = await Event.find();
+                return findedEvents.map(event => {
+                    // Need to format, cos mongoose adds some another properties
                     return { ...event._doc, _id: event._doc._id.toString() }
                 });
-            })
-            .catch(err => {
-                console.log(err);
-                throw err;
-            });
+            } catch (err) {
+                throw new Error("Events not found", err);
+            }
         },
-        createEvent: args => {
-            const event = new Event({
-                title: args.eventInput.title,
-                description: args.eventInput.description,
-                price: +args.eventInput.price,
-                date: new Date(args.eventInput.date),
-                creator: "60a968fe7021b655cc92b803"
-            });
-            let createdEvent;
-            // Need cos graphQL knows that it runs in async function and wait for complete
-            return event.save()
-            .then(result => {
-                createdEvent = { ...result._doc, _id: result._doc._id.toString() };
-                // Assign event for user
-                return User.findById("60a968fe7021b655cc92b803")
-            })
-            .then(user => {
-                if (!user) {
-                    throw new Error("User not found.")
-                }
-                user.createdEvents.push(event);
-                return user.save();
-            })
-            .then(result => {
-                return createdEvent;
-            })
-            .catch(err => {
-                console.log(err);
+        createEvent: async args => {
+            const { title, description, price, date, creator } = args.eventInput;
+            try {
+                const event = new Event({title, description, price: +price, date: new Date(date), creator: "60aa3c3d3d50231e5462c8f3"});
+                const createdEvent = await event.save();
+                const user = await User.findById("60aa3c3d3d50231e5462c8f3");
+                if (!user) { throw new Error("User not exists") };
+                await user.createdEvents.push(createdEvent);
+                await user.save();
+                // Need to format, cos mongoose adds some another properties
+                return { ...createdEvent._doc, _id: createdEvent._doc._id.toString() };
+            } catch (err) {
                 throw err;
-            });
+            }
         },
-        createUser: args => {
-            return User.findOne({email: args.userInput.email}).then(user => {
-                if (user) {
-                    throw new Error("User exists already.")
-                } 
-                // For crypt password
-                return bcrypt.hash(args.userInput.password, 12)
-            })
-            .then(hashedPassword => {
-                const user = new User({
-                    email: args.userInput.email,
-                    password: hashedPassword
-                });
-                return user.save()
-                .then(result => {
-                    console.log(result);
-                    return { ...result._doc, password: null, _id: result._doc._id.toString() }
-                })
-                .catch(err => {
-                    console.log(err);
-                    throw err;
-                });
-            })
-            .catch(err => {
-                console.log(err);
+        createUser: async args => {
+            const { email, password } = args.userInput;
+            try {
+                console.log(email);
+                const existedUser = await User.findOne({email: email});
+                console.log(existedUser);
+                if (existedUser) { throw new Error("User already exists") };
+                const user = new User({ email: email, password: await bcrypt.hash(password, 12) });
+                const createdUser = await user.save();
+                // Need to format, cos mongoose adds some another properties
+                return { ...createdUser._doc, password: null, _id: createdUser._doc._id.toString() };
+            } catch (err) {
                 throw err;
-            });
+            }
         },
     },
     graphiql: true
@@ -141,6 +111,21 @@ mongoose.connect(`mongodb+srv://${process.env.MONGO_USER}:${
 //     events {
 //         title
 //         price
+//     }
+// }
+
+// mutation {
+//     createEvent(eventInput: {title: "A test", description: "Description", price: 123, date: "2021-05-22T06:02:16.291Z"}) {
+//         title
+//         description
+//     }
+// }
+
+
+// mutation {
+//     createUser(userInput: {email: "test@test1.com", password: "Test"}) {
+//         email
+//     		password
 //     }
 // }
 
