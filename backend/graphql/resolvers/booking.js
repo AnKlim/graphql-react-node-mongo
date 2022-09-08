@@ -3,7 +3,10 @@ const Booking = require("../../models/booking");
 const { transformEvent, transformBooking }= require('./merge');
 
 module.exports = {
-    bookings: async () => {
+    bookings: async (args, req) => {
+        if (!req.isAuth) { // middleware folder is-auth file
+            throw Error('Not Authenticated!');
+        }
         // Need cos graphQL knows that it runs in async function and wait for complete
         try {
             const findedBookings = await Booking.find();
@@ -15,12 +18,15 @@ module.exports = {
             throw new Error("Events not found", err);
         }
     },
-    bookEvent: async args => {
+    bookEvent: async (args, req) => {
+        if (!req.isAuth) { // middleware folder is-auth file
+            throw Error('Not Authenticated!');
+        }
         try {
             const fetchedEvent = await Event.findOne({ _id: args.eventId });
             const booking = new Booking({
                 event: fetchedEvent,
-                user: "60aa3c3d3d50231e5462c8f3"
+                user: req.userId
                 // createdAt, updatedAt will be added by mongoose
             });
             const createdBooking = await booking.save();
@@ -30,7 +36,10 @@ module.exports = {
             throw err;
         }
     },
-    cancelBooking: async args => {
+    cancelBooking: async (args, req) => {
+        if (!req.isAuth) { // middleware folder is-auth file
+            throw Error('Not Authenticated!');
+        }
         try {
             const booking = await Booking.findById(args.bookingId).populate('event');
             const event = transformEvent(booking.event);

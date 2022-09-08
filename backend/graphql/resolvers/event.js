@@ -15,12 +15,15 @@ module.exports = {
             throw new Error("Events not found", err);
         }
     },
-    createEvent: async args => {
+    createEvent: async (args, req) => {
+        if (!req.isAuth) { // middleware folder is-auth file
+            throw Error('Not Authenticated!');
+        }
         const { title, description, price, date, creator } = args.eventInput;
         try {
-            const event = new Event({ title, description, price: +price, date: new Date(date), creator: "60aa3c3d3d50231e5462c8f3" });
+            const event = new Event({ title, description, price: +price, date: new Date(date), creator: req.userId });
             const createdEvent = await event.save();
-            const user = await User.findById("60aa3c3d3d50231e5462c8f3");
+            const user = await User.findById(req.userId);
             if (!user) { throw new Error("User not exists") };
             await user.createdEvents.push(createdEvent);
             await user.save();

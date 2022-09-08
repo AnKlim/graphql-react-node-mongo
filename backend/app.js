@@ -2,39 +2,16 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { graphqlHTTP } = require('express-graphql');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const Event = require("./models/event");
-const User = require("./models/user");
 
 const graphQLSchema = require("./graphql/schema");
 const graphQLResolvers = require("./graphql/resolvers");
+const isAuth = require("./middleware/is-auth");
 
 const app = express();
 
 app.use(bodyParser.json());
 
-// Find all events which ids are equal serched
-const findEvents = async eventsIds => {
-    try {
-        const findedEvents = await Event.find({_id: {$in: eventsIds}});
-        return findedEvents.map(event => {
-            // Need to format, cos mongoose adds some another properties
-            return { ...event._doc, _id: event._doc._id.toString(), creator: findUserById.bind(this, event.creator) }
-        });
-    } catch (err) {
-        throw err;
-    }
-}
-
-const findUserById = async userId => {
-    try {
-        const findedUser = await User.findById(userId);
-        return { ...findedUser._doc, _id: findedUser._doc._id.toString(), createdEvents: findEvents.bind(this, findedUser._doc.createdEvents) };
-    } catch (err) {
-        throw err;
-    }
-}
+app.use(isAuth);
 
 app.use('/graphql', graphqlHTTP({
     schema: graphQLSchema,
