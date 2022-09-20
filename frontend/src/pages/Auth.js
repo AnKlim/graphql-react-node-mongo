@@ -1,10 +1,12 @@
-import React, { useRef, useState } from "react";
+import React, { useContext, useRef, useState } from "react";
+import AuthContext from "../context/auth-context";
 
 import "./Auth.css";
 
 const AuthPage = () => {
 
     const [isLogin, setLogin] = useState(true);
+    const context = useContext(AuthContext);
     const email = useRef('');
     const password = useRef('');
 
@@ -49,7 +51,13 @@ const AuthPage = () => {
             if(res.status !== 200 && res.status !== 201) {
                 throw new Error('Failed!');
             }
+            console.log(res);
             return res.json();
+        }).then(resData => {
+            console.log(resData);
+            if(resData.data.login.token) {
+                context.login(resData.data.login.token, resData.data.login.userId, resData.data.login.tokenExpiration);
+            }
         }).catch(err => {
             console.log(err);
         })
