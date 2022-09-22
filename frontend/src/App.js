@@ -29,7 +29,6 @@ const App = () => {
         <main className='main-content'>
           <Routes>
             { !token && <Route path='/' element={<Navigate to='/auth' replace />} /> }
-            { !token && <Route path='/events' element={<Navigate to='/auth' replace />} /> }
             { token && <Route path='/' element={<Navigate to='/events' replace />} /> }
             { token && <Route path='/auth' element={<Navigate to='/events' replace />} /> }
             { !token && <Route path='/auth' element={<AuthPage />} /> }
