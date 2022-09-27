@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import AuthContext from "../context/auth-context";
 import Spinner from "../components/spinner/Spinner";
+import BookingList from "../components/bookings/bookingList/BookingList"
 
 const BookingsPage = () => {
 
@@ -49,20 +50,54 @@ const BookingsPage = () => {
         })
     };
 
+    const deleteBookingHandler = bookingId => {
+        setLoading(true);
+        const requestBody = {
+          query: `
+              mutation {
+                cancelBooking(bookingId: "${bookingId}") {
+                _id
+                 title
+                }
+              }
+            `
+        };
+    
+        fetch('http://localhost:8000/graphql', {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + context.token
+          }
+        })
+          .then(res => {
+            if (res.status !== 200 && res.status !== 201) {
+              throw new Error('Failed!');
+            }
+            return res.json();
+          })
+          .then(resData => {
+            const updatedBookings = bookings.filter(booking => {
+                return booking._id !== bookingId;
+            });
+            setBookings(updatedBookings);
+            setLoading(false);
+        })
+          .catch(err => {
+            console.log(err);
+            setLoading(false);
+          });
+      };
+
     useEffect(() => {
         fetchBookings();
     }, []);
 
     return (
         <>
-            <ul>
-                {bookings.map(booking => 
-                <li key={booking._id}>
-                    {booking.event.title} - {' '}{new Date(booking.createdAt).toLocaleDateString()}
-                </li>)}
-            </ul>
             {
-                isLoading && <Spinner />
+                isLoading ? <Spinner /> : <BookingList bookings={bookings} onDelete={deleteBookingHandler}/>
             }
         </>
     )
