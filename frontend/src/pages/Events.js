@@ -170,7 +170,6 @@ const EventsPage = () => {
             console.log(res);
             return res.json();
         }).then(resData => {
-            const events = resData.data.events;
             setSelectedEvent(null);
             setLoading(false);
         }).catch(err => {
@@ -213,21 +212,24 @@ const EventsPage = () => {
                 )
             }
             {selectedEvent && (
-                <Modal
-                    title={selectedEvent.title}
-                    canCancel
-                    canConfirm
-                    onCancel={modalCancelHandler}
-                    onConfirm={bookEventHandler}
-                    confirmText={context.token ? "Book" : "Confirm"}
-                >
-                    <h1>{selectedEvent.title}</h1>
-                    <h2>
-                        ${selectedEvent.price} -{' '}
-                        {new Date(selectedEvent.date).toLocaleDateString()}
-                    </h2>
-                    <p>{selectedEvent.description}</p>
-                </Modal>
+                <>
+                    <Backdrop />
+                    <Modal
+                        title={selectedEvent.title}
+                        canCancel
+                        canConfirm
+                        onCancel={modalCancelHandler}
+                        onConfirm={bookEventHandler}
+                        confirmText={context.token ? "Book" : "Confirm"}
+                    >
+                        <h1>{selectedEvent.title}</h1>
+                        <h2>
+                            ${selectedEvent.price} -{' '}
+                            {new Date(selectedEvent.date).toLocaleDateString()}
+                        </h2>
+                        <p>{selectedEvent.description}</p>
+                    </Modal>
+                </>
             )}
             {
                 context.token && 
