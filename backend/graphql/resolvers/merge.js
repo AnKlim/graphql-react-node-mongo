@@ -2,6 +2,7 @@ const DataLoader = require('dataloader');
 const Event = require("../../models/event");
 const User = require("../../models/user");
 const { dateToString } = require('../../helpers/date');
+const { events } = require('../../models/event');
 
 const eventLoader = new DataLoader(eventIds => findEvents(eventIds));
 
@@ -38,6 +39,7 @@ const findUserById = async userId => {
 const findEvents = async eventsIds => {
     try {
         const findedEvents = await Event.find({ _id: { $in: eventsIds } });
+        events.sort((a, b) => eventsIds.indexOf(a._id.toString()) - eventsIds.indexOf(b._id.toString()));
         return findedEvents.map(event => {
             // Need to format, cos mongoose adds some another properties
             return transformEvent(event);
