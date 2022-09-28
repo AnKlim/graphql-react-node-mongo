@@ -1,6 +1,11 @@
+const DataLoader = require('dataloader');
 const Event = require("../../models/event");
 const User = require("../../models/user");
 const { dateToString } = require('../../helpers/date');
+
+const eventLoader = new DataLoader(eventIds => findEvents(eventIds));
+
+const userLoader = new DataLoader(userIds => User.find({_id: {$in: userIds}}));
 
 const transformEvent = event => {
     return { ...event._doc, _id: event._doc._id.toString(), date: dateToString(event._doc.date), creator: findUserById.bind(this, event.creator) };
@@ -18,8 +23,8 @@ const transformBooking = booking => {
 
 const findUserById = async userId => {
     try {
-        const findedUser = await User.findById(userId);
-        return { ...findedUser._doc, _id: findedUser._doc._id.toString(), createdEvents: findEvents.bind(this, findedUser._doc.createdEvents) };
+        const findedUser = await userLoader.load(userId.toString()); // toString coz ids are Object type in mongoDB and may duplicate values 
+        return { ...findedUser._doc, _id: findedUser._doc._id.toString(), createdEvents: () => eventLoader.loadMany(user._doc.createdEvents) };
     } catch (err) {
         throw err;
     }
@@ -40,8 +45,9 @@ const findEvents = async eventsIds => {
 
 const singleEvent = async eventId => {
     try {
-        const findedEvent = await Event.findById(eventId);
-        return transformEvent(findedEvent);
+        const findedEvent = await eventLoader.load(eventId.toString());
+        // return transformEvent(findedEvent); No need coz the same tranformation was done previously during event loader findEvents
+        return findedEvent;
     } catch (err) {
         throw err;
     }
