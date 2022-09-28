@@ -24,7 +24,11 @@ const transformBooking = booking => {
 const findUserById = async userId => {
     try {
         const findedUser = await userLoader.load(userId.toString()); // toString coz ids are Object type in mongoDB and may duplicate values 
-        return { ...findedUser._doc, _id: findedUser._doc._id.toString(), createdEvents: () => eventLoader.loadMany(user._doc.createdEvents) };
+        return { 
+            ...findedUser._doc,
+            _id: findedUser._doc._id.toString(),
+            createdEvents: () => eventLoader.loadMany(findedUser._doc.createdEvents)
+        };
     } catch (err) {
         throw err;
     }

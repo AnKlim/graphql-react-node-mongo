@@ -29,7 +29,7 @@ const App = () => {
         <main className='main-content'>
           <Routes>
             { !token && <Route path='/' element={<Navigate to='/auth' replace />} /> }
-            { token && <Route path='/' element={<Navigate to='/events' replace />} /> }
+            { !token && <Route path='/bookings' element={<Navigate to='/auth' replace />} /> }
             { token && <Route path='/auth' element={<Navigate to='/events' replace />} /> }
             { !token && <Route path='/auth' element={<AuthPage />} /> }
             <Route path='/events' element={<EventsPage />} />
