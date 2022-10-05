@@ -18,15 +18,15 @@ module.exports = {
         },
     },
     Mutation: {
-        createEvent: async (args, req) => {
-            if (!req.isAuth) { // middleware folder is-auth file
+        createEvent: async (parent, args, context, info) => {
+            if (!context.authScope.isAuth) { // middleware folder is-auth file
                 throw Error('Not Authenticated!');
             }
-            const { title, description, price, date, creator } = args.eventInput;
+            const { title, description, price, date } = args.eventInput;
             try {
-                const event = new Event({ title, description, price: +price, date: new Date(date), creator: req.userId });
+                const event = new Event({ title, description, price: +price, date: new Date(date), creator: context.authScope.userId });
                 const createdEvent = await event.save();
-                const user = await User.findById(req.userId);
+                const user = await User.findById(context.authScope.userId);
                 if (!user) { throw new Error("User not exists") };
                 await user.createdEvents.push(createdEvent);
                 await user.save();

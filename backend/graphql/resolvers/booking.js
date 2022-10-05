@@ -4,8 +4,8 @@ const { transformEvent, transformBooking }= require('./merge');
 
 module.exports = {
     Query: {
-        bookings: async (args, req) => {
-            if (!req.isAuth) { // middleware folder is-auth file
+        bookings: async (parent, args, context, info) => {
+            if (!context.authScope.isAuth) { // middleware folder is-auth file
                 throw Error('Not Authenticated!');
             }
             // Need cos graphQL knows that it runs in async function and wait for complete
@@ -21,15 +21,15 @@ module.exports = {
         }
     },
     Mutation: {
-        bookEvent: async (args, req) => {
-            if (!req.isAuth) { // middleware folder is-auth file
+        bookEvent: async (parent, args, context, info) => {
+            if (!context.authScope.isAuth) { // middleware folder is-auth file
                 throw Error('Not Authenticated!');
             }
             try {
                 const fetchedEvent = await Event.findOne({ _id: args.eventId });
                 const booking = new Booking({
-                    event: fetchedEvent,
-                    user: req.userId
+                    event: fetchedEvent._id,
+                    user: context.authScope.userId
                     // createdAt, updatedAt will be added by mongoose
                 });
                 const createdBooking = await booking.save();
@@ -39,8 +39,8 @@ module.exports = {
                 throw err;
             }
         },
-        cancelBooking: async (args, req) => {
-            if (!req.isAuth) { // middleware folder is-auth file
+        cancelBooking: async (parent, args, context, info) => {
+            if (!context.authScope.isAuth) { // middleware folder is-auth file
                 throw Error('Not Authenticated!');
             }
             try {

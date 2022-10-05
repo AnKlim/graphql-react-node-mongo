@@ -4,7 +4,7 @@ const User = require("../../models/user");
 
 module.exports = {
     Mutation: {
-        createUser: async args => {
+        createUser: async (parent, args, context, info) => {
             const { email, password } = args.userInput;
             try {
                 const existedUser = await User.findOne({ email: email });
@@ -19,7 +19,8 @@ module.exports = {
         },
     },
     Query: {
-        login: async ({email, password}) => {
+        login: async (parent, args, context, info) => {
+            const { email, password } = args;
             const user = await User.findOne({ email: email });
             if (!user) {
                 throw new Error("User does not exist");

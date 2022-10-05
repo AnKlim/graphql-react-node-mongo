@@ -4,8 +4,12 @@ import Backdrop from "../components/backdrop/Backdrop";
 import Spinner from "../components/spinner/Spinner";
 import AuthContext from "../context/auth-context";
 import EventList from "../components/events/eventList/EventList";
+import { useQuery, useMutation } from '@apollo/client';
+import { EVENTS } from "../graphql/queries/events";
 
 import "./Events.css";
+import { BOOK_EVENT } from "../graphql/mutations/bookEvent";
+import { CREATE_EVENT } from "../graphql/mutations/createEvent";
 
 const EventsPage = () => {
     const title = useRef('');
@@ -14,16 +18,29 @@ const EventsPage = () => {
     const description = useRef('');
     const context = useContext(AuthContext);
     const [creating, setCreating] = useState(false);
-    const [events, setEvents] = useState([]);
-    const [isLoading, setLoading] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const { loading: eventLoading, data, refetch } = useQuery(EVENTS);
+    const [bookEvent, { loading: bookingLoading }] = useMutation(BOOK_EVENT, {
+        context: {
+            headers: {
+                'Authorization': 'Bearer ' + context.token
+            }
+        }
+    });
+    const [createEvent, { loading: creationLoading }] = useMutation(CREATE_EVENT, {
+        context: {
+            headers: {
+                'Authorization': 'Bearer ' + context.token
+            }
+        }
+    });
 
     const modalCancelHandler = () => {
         setCreating(false);
         setSelectedEvent(null);
     };
 
-    const modalConfirmHandler = () => {
+    const modalConfirmHandler = async () => {
         setCreating(false);
         const titleValue = title?.current.value;
         const priceValue = +price?.current.value;
@@ -32,155 +49,32 @@ const EventsPage = () => {
         if(!titleValue.length || priceValue <= 0 || !dateValue.length || !descriptionValue.length) {
             return;
         }
-
-        const requestBody = {
-            query: `
-                mutation CreateEvent($title: String!, $description: String!, $price: Float!, $date: String!) {
-                    createEvent(eventInput: {title: $title, description: $description, price: $price, date: $date}) {
-                        _id
-                        title
-                        description
-                        date
-                        price
-                        creator {
-                            _id
-                            email
-                        }
-                    }
-                }
-            `,
-            variables: {
-                title: titleValue,
-                description: descriptionValue,
-                price: priceValue,
-                date: dateValue
-            }
-        };
         
-        fetch("http://localhost:8000/graphql", {
-            method: 'POST',
-            body: JSON.stringify(requestBody),
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + context.token
-            }
-        }).then(res => {
-            if(res.status !== 200 && res.status !== 201) {
-                throw new Error('Failed!');
-            }
-            console.log(res);
-            return res.json();
-        }).then(resData => {
-            console.log(resData);
-            const updatedEvents = [...events];
-                updatedEvents.push({
-                  _id: resData.data.createEvent._id,
-                  title: resData.data.createEvent.title,
-                  description: resData.data.createEvent.description,
-                  date: resData.data.createEvent.date,
-                  price: resData.data.createEvent.price,
-                  creator: {
-                    _id: context.userId
-                  }
-                });
-            setEvents(updatedEvents);
-        }).catch(err => {
+        try {
+            await createEvent({ variables: { title: titleValue, description: descriptionValue, price: priceValue, date: dateValue } });
+            setSelectedEvent(null);
+            refetch();
+        } catch (err) {
             console.log(err);
-        })
-    };
-
-    const fetchEvents = () => {
-        setLoading(true);
-        const requestBody = {
-            query: `
-                query {
-                    events {
-                        _id
-                        title
-                        description
-                        date
-                        price
-                        creator {
-                            _id
-                            email
-                        }
-                    }
-                }
-            `
-        };
-        
-        fetch("http://localhost:8000/graphql", {
-            method: 'POST',
-            body: JSON.stringify(requestBody),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        }).then(res => {
-            if(res.status !== 200 && res.status !== 201) {
-                throw new Error('Failed!');
-            }
-            console.log(res);
-            return res.json();
-        }).then(resData => {
-            const events = resData.data.events;
-            setEvents(events);
-            setLoading(false);
-        }).catch(err => {
-            console.log(err);
-            setLoading(false);
-        })
+        }
     };
 
     const showDetailsHander = eventId => {
-        setSelectedEvent(events.find(e => e._id === eventId));
+        setSelectedEvent(data.events.find(e => e._id === eventId));
     };
 
-    const bookEventHandler = () => {
+    const bookEventHandler = async () => {
         if(!context.token) {
             setSelectedEvent(null);
             return;
         }
-        setLoading(true);
-        const requestBody = {
-            query: `
-                mutation BookEvent($eventId: ID!){
-                    bookEvent(eventId: $eventId) {
-                        _id
-                        createdAt
-                        updatedAt
-                    }
-                }
-            `,
-            variables: {
-                eventId: selectedEvent._id
-            }
-        };
-        
-        fetch("http://localhost:8000/graphql", {
-            method: 'POST',
-            body: JSON.stringify(requestBody),
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + context.token
-            }
-        }).then(res => {
-            if(res.status !== 200 && res.status !== 201) {
-                throw new Error('Failed!');
-            }
-            console.log(res);
-            return res.json();
-        }).then(resData => {
+        try {
+            await bookEvent({ variables: { eventId: selectedEvent._id } });
             setSelectedEvent(null);
-            setLoading(false);
-        }).catch(err => {
+        } catch (err) {
             console.log(err);
-            setLoading(false);
-        })
+        }
     };
-
-    useEffect(() => {
-        fetchEvents();
-    }, []);
 
     return (
         <>
@@ -239,7 +133,7 @@ const EventsPage = () => {
                     </div>
             }
             {
-                isLoading ? <Spinner /> : <EventList events={events} authUserId={context.userId} onViewDetail={showDetailsHander} />
+                eventLoading || bookingLoading || creationLoading ? <Spinner /> : <EventList events={data.events} authUserId={context.userId} onViewDetail={showDetailsHander} />
             }
         </>
     )

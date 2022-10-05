@@ -1,7 +1,10 @@
 import React, { useContext, useRef, useState } from "react";
+import { useLazyQuery, useMutation } from '@apollo/client';
 import AuthContext from "../context/auth-context";
+import { LOGIN } from "../graphql/queries/login";
 
 import "./Auth.css";
+import { CREATE_USER } from "../graphql/mutations/createUser";
 
 const AuthPage = () => {
 
@@ -9,8 +12,10 @@ const AuthPage = () => {
     const context = useContext(AuthContext);
     const email = useRef('');
     const password = useRef('');
+    const [login] = useLazyQuery(LOGIN);
+    const [createUser] = useMutation(CREATE_USER);
 
-    const submitHeader = (event) => {
+    const submitHeader = async event => {
         event && event.preventDefault();
         const emailValue = email?.current.value;
         const passwordValue = password?.current.value;
@@ -18,57 +23,20 @@ const AuthPage = () => {
             return;
         }
 
-        let requestBody = {
-            query: `
-                query Login($email: String!, $password: String!) {
-                    login(email: $email, password: $password) {
-                        userId
-                        token
-                        tokenExpiration
-                    }
+        try {
+            let resData;
+            if (isLogin) {
+                resData = await login({ variables: { email: emailValue, password: passwordValue } });
+                if (resData.data.login.token) {
+                    context.login(resData.data.login.token, resData.data.login.userId, resData.data.login.tokenExpiration);
                 }
-            `,
-            variables: {
-                email: emailValue,
-                password: passwordValue
+                // localStorage.setItem('token', resData.data.login.token);
+            } else {
+                resData = await createUser({ variables: { email: emailValue, password: passwordValue } });
             }
-        };
-
-        if(!isLogin) {
-            requestBody = {
-                query: `
-                    mutation CreateUser($email: String!, $password: String!) {
-                        createUser(userInput: {email: $email, password: $password}) {
-                            _id
-                            email
-                        }
-                    }
-                `,
-                variables: {
-                    email: emailValue,
-                    password: passwordValue
-                }
-            };
-        }
-        
-        fetch("http://localhost:8000/graphql", {
-            method: 'POST',
-            body: JSON.stringify(requestBody),
-            headers: {'Content-Type': 'application/json'}
-        }).then(res => {
-            if(res.status !== 200 && res.status !== 201) {
-                throw new Error('Failed!');
-            }
-            console.log(res);
-            return res.json();
-        }).then(resData => {
-            console.log(resData);
-            if(resData.data.login.token) {
-                context.login(resData.data.login.token, resData.data.login.userId, resData.data.login.tokenExpiration);
-            }
-        }).catch(err => {
+        } catch (err) {
             console.log(err);
-        })
+        }
     }
 
     return (
